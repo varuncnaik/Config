@@ -5,6 +5,11 @@ showHelp() {
 	echo 'Usage: git unstage [-A] [-v] [--] [FILE]...'
 }
 
+noChanges() {
+	echo 'Nothing specified, nothing unstaged.'
+	echo "Maybe you wanted to say 'git unstage -A'?"
+}
+
 OPTIND=1 # Reset in case getopts was used previously in the script
 
 ALL=0
@@ -34,12 +39,17 @@ then
 		git reset HEAD > /dev/null
 	fi
 else
-	if ((VERBOSITY==1))
+	if [ -z "$*" ]
 	then
-		echo "git reset HEAD -- $*"
-		git reset HEAD -- $*
+		noChanges
 	else
-		git reset HEAD -- $* > /dev/null
+		if ((VERBOSITY==1))
+		then
+			echo "git reset HEAD -- $*"
+			git reset HEAD -- $*
+		else
+			git reset HEAD -- $* > /dev/null
+		fi
 	fi
 fi
 
