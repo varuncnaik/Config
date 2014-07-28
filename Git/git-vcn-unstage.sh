@@ -1,8 +1,12 @@
 #!/bin/sh
 
 showHelp() {
-	echo 'Bad option...no changes made to index'
+	echo "Bad option -$OPTARG...no changes made to index"
 	echo 'Usage: git unstage [-A] [-v] [--] [FILE]...'
+	echo
+	echo '    -A                    unstage all files in the index'
+	echo '    -v                    be verbose'
+	echo
 }
 
 noChanges() {
@@ -29,14 +33,15 @@ done
 
 shift "$((OPTIND-1))"
 
+# TODO: 'git status --porcelain' to check for branch/stash merge conflicts
 if ((ALL == 1))
 then
 	if ((VERBOSITY==1))
 	then
-		echo "git reset HEAD"
-		git reset HEAD
+		echo "git reset"
+		git reset
 	else
-		git reset HEAD > /dev/null
+		git reset > /dev/null
 	fi
 else
 	if [ -z "$*" ]
