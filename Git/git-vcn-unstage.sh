@@ -14,6 +14,14 @@ noChanges() {
     echo "Maybe you wanted to say 'git unstage -A'?"
 }
 
+# TODO: finish this (check status)
+unstageIfNoConflict() {
+    local line=$1
+    local status=${line:0:2}
+    local file=${line:3}
+    git reset HEAD -- $file > /dev/null
+}
+
 OPTIND=1 # Reset in case getopts was used previously in the script
 
 ALL=0
@@ -33,23 +41,42 @@ done
 
 shift "$((OPTIND-1))"
 
-# TODO: 'git status --porcelain' to check for branch/stash merge conflicts
 if ((ALL == 1)); then
     if ((VERBOSITY==1)); then
         echo "git reset"
-        git reset
-    else
-        git reset > /dev/null
+        echo "Unstaged changes:"
     fi
+    lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain)
+    if [ -z "$lines" ]; then
+        echo "No files unstaged."
+    else
+        while read line; do
+            unstageIfNoConflict "$line"
+            if ((VERBOSITY==1)); then
+                echo "$line"
+            fi
+        done <<<"$lines"
+    fi
+
 else
     if [ -z "$*" ]; then
         noChanges
     else
         if ((VERBOSITY==1)); then
             echo "git reset HEAD -- $*"
-            git reset HEAD -- $*
+            echo "Unstaged changes:"
+        fi
+        lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain -- $*)
+        if [ -z "$lines" ]; then
+            echo "No files unstaged."
         else
-            git reset HEAD -- $* > /dev/null
+            while read line; do
+                echo "asdf"
+                unstageIfNoConflict "$line"
+                if ((VERBOSITY==1)); then
+                    echo "$line"
+                fi
+            done <<<"$lines"
         fi
     fi
 fi
