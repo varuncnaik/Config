@@ -17,6 +17,9 @@ noChanges() {
 # TODO: finish this (check status)
 unstageIfNoConflict() {
     local line=$1
+    if [ -z "$line" ]; then
+        return 1
+    fi
     local status=${line:0:2}
     local file=${line:3}
     if [ "$status" == "??" ]; then
@@ -26,54 +29,64 @@ unstageIfNoConflict() {
     return 0
 }
 
-OPTIND=1 # Reset in case getopts was used previously in the script
+# Option globals
+optAll=0
+optVerbosity=0
+fileUnstaged=0
 
-# Boolean globals
-ALL=0
-VERBOSITY=0
-FILE_UNSTAGED=0
+# Read options into option globals, or exit with status 1 if there's a bad option
+readArgs() {
+    OPTIND=1
+    while getopts ":Av" opt; do
+        case "$opt" in
+        A)  optAll=1
+            ;;
+        v)  optVerbosity=1
+            ;;
+        ?)  showHelp
+            exit 1
+            ;;
+        esac
+    done
+}
 
-while getopts ":Av" opt; do
-    case "$opt" in
-    A)  ALL=1
-        ;;
-    v)  VERBOSITY=1
-        ;;
-    ?)  showHelp
-        exit 1
-        ;;
-    esac
-done
-
-shift "$((OPTIND-1))"
-
-if ((ALL==1)); then
-    lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain)
-    verboseMsg="git reset"
-else
-    if [ -z "$*" ]; then
-        noChanges
-        exit 1
-    fi
-    lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain -- $*)
-    verboseMsg="git reset HEAD -- $*"
-fi
-
-if ((VERBOSITY==1)); then
-    echo "$verboseMsg"
-    echo "Unstaged changes:"
-fi
-while IFS='' read -r line; do
-    unstageIfNoConflict "$line"
-    status=$?        # return value of the previous function
-    if ((status==0)); then
-        if ((VERBOSITY==1)); then
-            echo "$line"
+main() {
+    local lines=""
+    local verboseMsg=""
+    local status=0
+    readArgs "$@"
+    shift $(($OPTIND-1)) # Reset in case getopts was used previously in the script
+    if ((optAll==1)); then
+        lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain)
+        verboseMsg="git reset"
+    else
+        if [ -z "$*" ]; then
+            noChanges
+            exit 1
         fi
-        FILE_UNSTAGED=1
+        lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain -- $*)
+        verboseMsg="git reset HEAD -- $*"
     fi
-done <<<"$lines"
-if ((FILE_UNSTAGED==0)); then
-    echo "No changes made to index."
-fi
+    
+    if ((optVerbosity==1)); then
+        echo "$verboseMsg"
+        echo "Unstaged changes:"
+    fi
+    while IFS='' read -r line; do
+        unstageIfNoConflict "$line"
+        status=$?        # return value of the previous function
+        if ((status==0)); then
+            if ((optVerbosity==1)); then
+                echo "$line"
+            fi
+            fileUnstaged=1
+        fi
+    done <<<"$lines"
+    
+    if ((fileUnstaged==0)); then
+        echo "No changes made to index."
+    fi
+}
+
+main "$@"
 
