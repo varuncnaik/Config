@@ -36,6 +36,11 @@ fileUnstaged=0
 
 # Read options into option globals, or exit with status 1 if there's a bad option
 readArgs() {
+    local gitDirectory=$(git rev-parse --git-dir 2> /dev/null)
+    if [ -z "$gitDirectory" ]; then
+        git status       # Display a message saying we're not in a git repository
+        exit 1
+    fi
     OPTIND=1
     while getopts ":Av" opt; do
         case "$opt" in
