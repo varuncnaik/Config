@@ -1,0 +1,58 @@
+filetype on             " Automatically detect file types
+set nocompatible        " No vi compatibility
+
+" Add recently accessed projects menu (project plugin)
+set viminfo^=\!
+
+" Minibuffer Explorer Settings
+let g:miniBufExplMapWindowNavVim = 1
+let g:miniBufExplMapWindowNavArrows = 1
+let g:miniBufExplMapCTabSwitchBufs = 1
+let g:miniBufExplModSelTarget = 1
+
+" alt+n or alt+p to navigate between entries in QuickFix
+map <silent> <m-p> :cp <cr>
+map <silent> <m-n> :cn <cr>
+
+" Change which file opens after executing :Rails command
+let g:rails_default_file='config/database.yml'
+
+syntax enable
+
+set confirm             " Enable error files & error jumping
+set clipboard+=unnamed  " Yanks go on clipboard instead
+set history=256         " Number of things to remember in history
+set autowrite           " Writes on make/shell commands
+set ruler               " Ruler on
+set number              " Line numbers on
+set nowrap              " Line wrapping off
+set timeoutlen=250      " Time to wait after ESC (default causes an annoying delay)
+
+" Formatting
+set tabstop=4           " <Tab> counts for 4 spaces
+set backspace=2         " Backspace over indent, eol, start in insert mode
+set nocp incsearch      " Not in compatibility mode, no incremental searching
+set cinoptions=:0,p0,t0
+set cinwords=if,else,while,do,for,switch,case
+set formatoptions=tcqr
+set cindent
+set autoindent          " Copy indent from current line when starting a new line
+set smartindent         " Do smart autoindenting when starting a new line
+set shiftwidth=4        " Number of spaces for autoindent and smartindent
+set smarttab            " Improve use of <Tab> at beginning of line
+"set expandtab           " Uncomment this to use spaces instead of tabs
+
+" Visual
+set showmatch           " Show matching brackets
+set mat=5               " Bracket blinking
+set nolist
+" Show $ at end of line and trailing space as ~
+set lcs=tab:\ \ ,eol:$,trail:~,extends:>,precedes:<
+set novisualbell        " No blinking
+set noerrorbells        " No noise
+set laststatus=2        " Always show status line
+
+" Mouse stuff
+set mousehide           " Hide mouse after chars typed
+set mouse=a             " Mouse in all modesc
+
