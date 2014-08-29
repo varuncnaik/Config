@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 git config --global --unset alias.word-diff
 git config --global --unset alias.unstage
