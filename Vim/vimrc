@@ -1,4 +1,6 @@
 filetype on             " Automatically detect file types
+filetype plugin on      " Enable loading of plugin files for specific file types
+filetype indent on      " Enable loading of indent file for specific file types
 set nocompatible        " No vi compatibility
 
 " Add recently accessed projects menu (project plugin)
