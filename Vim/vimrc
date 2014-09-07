@@ -52,7 +52,10 @@ set nolist
 set lcs=tab:\ \ ,eol:$,trail:~,extends:>,precedes:<
 set novisualbell        " No blinking
 set noerrorbells        " No noise
-set laststatus=2        " Always show status line
+
+" statusline - lifted from http://albertwu.org/cs61a/notes/vimrc
+set laststatus=2
+set statusline=%.40F%=%m\ %Y\ Line:\ %3l/%L[%3p%%]
 
 " Mouse stuff
 set mousehide           " Hide mouse after chars typed
