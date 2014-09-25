@@ -55,7 +55,7 @@ set noerrorbells        " No noise
 
 " statusline - lifted from http://albertwu.org/cs61a/notes/vimrc
 set laststatus=2
-set statusline=%.40F%=%m\ %Y\ Line:\ %3l/%L[%3p%%]
+set statusline=%.40F\ (%{&ff})\ %=%m\ %Y\ Line\ %l/%L,\ Column\ %v\ [%3p%%]
 
 " Mouse stuff
 set mousehide           " Hide mouse after chars typed
