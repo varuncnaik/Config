@@ -1,0 +1,13 @@
+# Pyenv
+export PATH=$PATH:$HOME/bin
+if type pyenv &> /dev/null; then
+	eval "$(pyenv init -)"
+fi
+
+# Grep colors
+export GREP_OPTIONS='--color=always'
+
+# Aliases
+alias chrome='open -a Google\ Chrome'
+alias firefox='open -a Firefox'
+alias ls='ls -G'
