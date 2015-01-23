@@ -11,3 +11,7 @@ export GREP_OPTIONS='--color=always'
 alias chrome='open -a Google\ Chrome'
 alias firefox='open -a Firefox'
 alias ls='ls -G'
+
+# Pager
+export PAGER=less
+export LESS=-R
