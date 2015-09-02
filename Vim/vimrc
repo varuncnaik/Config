@@ -33,7 +33,6 @@ set timeoutlen=250      " Time to wait after ESC (default causes an annoying del
 " Formatting
 set tabstop=4           " <Tab> counts for 4 spaces
 set backspace=2         " Backspace over indent, eol, start in insert mode
-set nocp incsearch      " Not in compatibility mode, no incremental searching
 set cinoptions=:0,p0,t0
 set cinwords=if,else,while,do,for,switch,case
 set formatoptions=tcqr
@@ -43,6 +42,12 @@ set smartindent         " Do smart autoindenting when starting a new line
 set shiftwidth=4        " Number of spaces for autoindent and smartindent
 set smarttab            " Improve use of <Tab> at beginning of line
 "set expandtab           " Uncomment this to use spaces instead of tabs
+
+" Searching
+set nocp incsearch      " Not in compatibility mode, no incremental searching
+set hlsearch            " Highlight all search results
+" Press Space to turn off highlighting and clear any message already displayed.
+:nnoremap <silent> <Space> :nohlsearch<Bar>:echo<CR>
 
 " Visual
 set showmatch           " Show matching brackets
