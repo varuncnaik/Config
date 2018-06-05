@@ -41,7 +41,9 @@ set autoindent          " Copy indent from current line when starting a new line
 set smartindent         " Do smart autoindenting when starting a new line
 set shiftwidth=4        " Number of spaces for autoindent and smartindent
 set smarttab            " Improve use of <Tab> at beginning of line
-"set expandtab           " Uncomment this to use spaces instead of tabs
+"set expandtab          " Uncomment this to use spaces instead of tabs
+" Display cursor before a tab in normal mode
+set list lcs=tab:\ \ 
 
 " Searching
 set nocp incsearch      " Not in compatibility mode, no incremental searching
@@ -52,17 +54,15 @@ set hlsearch            " Highlight all search results
 " Visual
 set showmatch           " Show matching brackets
 set mat=5               " Bracket blinking
-set nolist
-" Show $ at end of line and trailing space as ~
-set lcs=tab:\ \ ,eol:$,trail:~,extends:>,precedes:<
 set novisualbell        " No blinking
 set noerrorbells        " No noise
-
 " statusline - lifted from http://albertwu.org/cs61a/notes/vimrc
 set laststatus=2
 set statusline=%.40F\ (%{&ff})\ %=%m\ %Y\ Line\ %l/%L,\ Column\ %v\ [%3p%%]
 
 " Mouse stuff
 set mousehide           " Hide mouse after chars typed
-set mouse=a             " Mouse in all modesc
+set mouse=              " Disable mouse
 
+" Scrolling
+set nostartofline

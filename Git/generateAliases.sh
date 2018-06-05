@@ -1,16 +1,42 @@
 #!/bin/bash
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Exit on certain errors
+set -u
 
-# Aliases
-chmod u+x $DIR/git-vcn-unstage.sh
-cp $DIR/git-vcn-unstage.sh /usr/local/bin/git-vcn-unstage.sh
-git config --global alias.unstage '!git-vcn-unstage.sh'
-git config --global alias.word-diff 'diff --word-diff-regex="[^[:space:](),]+"'
+# Global constants
+readonly DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+readonly BIN_DIR='/usr/local/bin'
 
-# Always show color
-git config --global color.ui always
+main() {
+    # Check arguments
+    if (($# > 0)); then
+        >&2 echo "Error: expected no arguments"
+        >&2 echo "USAGE: ./generateAliases.sh"
+        exit 1
+    fi
 
-# Simple push - push current branch to a branch of the same name
-git config --global push.default simple
+    # git unstage
+    if [[ -e "$BIN_DIR/git-vcn-unstage.sh" && ! -f "$BIN_DIR/git-vcn-unstage.sh" ]]; then
+        >&2 echo "$BIN_DIR/git-vcn-unstage.sh exists and is not a regular file, exiting"
+        exit 1
+    fi
+    cp "$DIR/git-vcn-unstage.sh" "$BIN_DIR/git-vcn-unstage.sh"
+    if (($? != 0)); then
+        >&2 echo "cp failed, exiting"
+        exit 1
+    fi
+    chmod u+x "$BIN_DIR/git-vcn-unstage.sh"
+    if (($? != 0)); then
+        >&2 echo "chmod failed, exiting"
+        exit 1
+    fi
+    git config --global alias.unstage '!git-vcn-unstage.sh'
+    if (($? != 0)); then
+        >&2 echo "git config alias.unstage failed, exiting"
+        exit 1
+    fi
 
+    return 0
+}
+
+main "$@"

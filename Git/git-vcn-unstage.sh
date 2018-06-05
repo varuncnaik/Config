@@ -1,54 +1,59 @@
 #!/bin/bash
 
-showHelp() {
-    echo "Bad option -$OPTARG...no changes made to index"
-    echo 'Usage: git unstage [-A] [-v] [--] [FILE]...'
-    echo
-    echo '    -A                    unstage all files in the index'
-    echo '    -v                    be verbose'
-    echo
+# Exit on certain errors
+set -u
+
+show_help() {
+    >&2 echo "Bad option -$OPTARG...no changes made to index"
+    >&2 echo 'Usage: git unstage [-A] [-v] [--] [FILE]...'
+    >&2 echo
+    >&2 echo '    -A                    unstage all files in the index'
+    >&2 echo '    -v                    be verbose'
+    >&2 echo
 }
 
-noChanges() {
-    echo 'Nothing specified, nothing unstaged.'
-    echo "Maybe you wanted to say 'git unstage -A'?"
+no_changes() {
+    >&2 echo 'Nothing specified, nothing unstaged.'
+    >&2 echo "Maybe you wanted to say 'git unstage -A'?"
 }
 
 # TODO: finish this (check status)
-unstageIfNoConflict() {
-    local line=$1
-    if [ -z "$line" ]; then
+unstage_if_no_conflict() {
+    local line="$1"
+    if [[ -z "$line" ]]; then
         return 1
     fi
-    local status=${line:0:2}
-    local file=${line:3}
-    if [ "$status" == "??" ]; then
+    local status="${line:0:2}"
+    local file="${line:3}"
+    if [[ "$status" == "??" ]]; then
         return 1
     fi
-    git reset HEAD -- $file > /dev/null
+    # TODO: do a single git reset at the end, not one for each file
+    git reset HEAD -- "$file" > /dev/null
     return 0
 }
 
 # Option globals
-optAll=0
-optVerbosity=0
-fileUnstaged=0
+opt_all=0
+opt_verbosity=0
 
 # Read options into option globals, or exit with status 1 if there's a bad option
-readArgs() {
-    local gitDirectory=$(git rev-parse --git-dir 2> /dev/null)
-    if [ -z "$gitDirectory" ]; then
-        git status       # Display a message saying we're not in a git repository
+read_args() {
+    # If we're not in a git repository, then display an error and exit
+    git rev-parse --git-dir > /dev/null
+    if (($? != 0)); then
         exit 1
     fi
+
     OPTIND=1
+    local opt
     while getopts ":Av" opt; do
         case "$opt" in
-        A)  optAll=1
+        A)  opt_all=1
             ;;
-        v)  optVerbosity=1
+        v)  opt_verbosity=1
             ;;
-        ?)  showHelp
+        ?)  show_help
             exit 1
             ;;
         esac
@@ -56,42 +61,45 @@ readArgs() {
 }
 
 main() {
-    local lines=""
-    local verboseMsg=""
-    local status=0
-    readArgs "$@"
-    shift $(($OPTIND-1)) # Reset in case getopts was used previously in the script
-    if ((optAll==1)); then
-        lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain)
-        verboseMsg="git reset"
+    read_args "$@"
+    shift "$((OPTIND-1))" # Reset in case getopts was used previously in the script
+
+    local lines
+    local verbose_msg
+    if ((opt_all == 1)); then
+        # TODO: change to git status -z or git diff --staged --name-only -z
+        lines="$(cd "${GIT_PREFIX:-.}" && git status --porcelain)"
+        verbose_msg="git reset"
     else
-        if [ -z "$*" ]; then
-            noChanges
+        if (($# == 0)); then
+            no_changes
             exit 1
         fi
-        lines=$(cd ${GIT_PREFIX:-.} && git status --porcelain -- $*)
-        verboseMsg="git reset HEAD -- $*"
+        # TODO: change to git status -z or git diff --staged --name-only -z
+        lines="$(cd "${GIT_PREFIX:-.}" && git status --porcelain -- "$@")"
+        verbose_msg="git reset HEAD -- $@"
     fi
-    
-    if ((optVerbosity==1)); then
-        echo "$verboseMsg"
+
+    if ((opt_verbosity == 1)); then
+        echo "$verbose_msg"
         echo "Unstaged changes:"
     fi
+    local line
+    local file_unstaged=0
     while IFS='' read -r line; do
-        unstageIfNoConflict "$line"
-        status=$?        # return value of the previous function
-        if ((status==0)); then
-            if ((optVerbosity==1)); then
+        # TODO: be careful with rename and copy
+        unstage_if_no_conflict "$line"
+        if (($? == 0)); then
+            if ((opt_verbosity == 1)); then
                 echo "$line"
             fi
-            fileUnstaged=1
+            file_unstaged=1
         fi
     done <<<"$lines"
-    
-    if ((fileUnstaged==0)); then
-        echo "No changes made to index."
+
+    if ((file_unstaged == 0)); then
+        >&2 echo "No changes made to index."
     fi
 }
 
 main "$@"
-

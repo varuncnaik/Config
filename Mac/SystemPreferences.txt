@@ -1,0 +1,78 @@
+Energy Saver
+	Battery
+		Turn off display after:
+			            V
+			  |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+			1 min               15 min                    1 hr                   3 hrs Never
+		[X] Put hard disks to sleep when possible
+		[X] Slightly dim the display while on battery power
+		[ ] Enable Power Nap while on battery power
+	Power Adapter
+		Turn off display after:
+			                 V
+			  |    |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+			1 min               15 min                    1 hr                   3 hrs Never
+		[ ] Prevent computer from sleeping automatically when the display is off
+		[X] Put hard disks to sleep when possible
+		[X] Wake for Wi-Fi network access
+		[X] Enable Power Nap while plugged into a power adapter
+	[X] Show battery status in menu bar
+Keyboard
+	Keyboard
+		Key Repeat
+			                       V
+			  |  |  |  |  |  |  |  |
+			Off Slow              Fast
+		Delay Until Repeat
+			                              V
+			  |   |   |   |   |   |   |   |
+			 Long                       Short
+		[ ] Use all F1, F2, etc. keys as standard function keys
+		[X] Adjust keyboard brightness in low light
+		Turn off when computer is not used for:
+			                                               V
+			  |        |        |        |        |        |
+			5 secs  10 secs  30 secs   1 min   5 mins    Never
+		[ ] Show Keyboard, Emoji, & Symbol Viewers in menu bar
+	Text
+		...
+		[X] Correct spelling automatically
+		Spelling: Automatic by Language
+		[X] Use smart quotes and dashes
+	Shortcuts
+		...
+		Full Keyboard Access: In windows and dialogs, press Tab to move keyboard focus between:
+			(*) Text boxes and lists only
+			( ) All controls
+	Input Sources
+		...
+		[ ] Show Input menu in menu bar
+Trackpad
+	Point & Click
+		[X] Look up & data detectors: Force Click with one finger
+		[X] Secondary click: Click or tap with two fingers
+		[X] Tap to click: Tap with one finger
+		Click
+			         V
+			  |      |      |
+			Light  Medium  Firm
+		Tracking speed
+			           V
+			  |  |  |  |  |  |  |  |  |  |
+			 Slow                       Fast
+		[ ] Silent clicking
+		[X] Force Click and haptic feedback
+	Scroll & Zoom
+		[X] Scroll direction: natural: Content tracks finger movement
+		[ ] Zoom in or out: Pinch with two fingers
+		[X] Smart zoom: Double-tap with two fingers
+		[X] Rotate: Rotate with two fingers
+	More Gestures
+		[X] Swipe between pages: Scroll left or right with two fingers
+		[ ] Swipe between full-screen apps: Swipe left or right with three fingers
+		[X] Notification Center: Swipe left from the right edge with two fingers
+		[X] Mission Control: Swipe up with three fingers
+		[X] App Expose: Swipe down with three fingers
+		[X] Launchpad: Pinch with thumb and three fingers
+		[X] Show Desktop: Spread with thumb and three fingers
+
