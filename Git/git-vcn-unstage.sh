@@ -67,8 +67,9 @@ remove_lock_file() {
 }
 
 # Prints a "help" message.
+# $1: the bad option
 show_help() {
-    >&2 echo "Bad option -$OPTARG...no changes made to index"
+    >&2 echo "Bad option -$1...no changes made to index"
     >&2 echo 'Usage: git unstage [-A] [-v] [--] [FILE]...'
     >&2 echo
     >&2 echo '    -A                    unstage all files in the index'
@@ -161,9 +162,13 @@ get_count_to_unstage() {
 }
 
 # Reads options into option globals, or exits with status 1 if there's a bad
-# option.
+# option. Changes the shell variables OPTARG and OPTIND.
 read_args() {
-    OPTIND=1
+    if ((OPTIND != 1)); then
+        >&2 echo "OPTIND is $OPTIND"' != 1, exiting'
+        exit 1
+    fi
+
     local opt
     while getopts ":Av" opt; do
         case "$opt" in
@@ -171,7 +176,7 @@ read_args() {
             ;;
         v)  opt_verbosity=1
             ;;
-        ?)  show_help
+        ?)  show_help "$OPTARG"
             exit 1
             ;;
         esac
@@ -213,8 +218,9 @@ main() {
         reset_treeish='HEAD'
     fi
 
+    # Read option arguments, and then shift past them
     read_args "$@"
-    shift "$((OPTIND-1))" # Reset in case getopts was used previously in the script
+    shift "$((OPTIND-1))"
 
     create_lock_file "$git_dir"
 
