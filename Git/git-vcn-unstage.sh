@@ -186,15 +186,20 @@ main() {
     trap 'cleanup '"$(kill -l QUIT)" QUIT
     trap 'cleanup '"$(kill -l PIPE)" PIPE
 
-    # If we're not in a git repository, then display an error and exit
+    # If we're in a git repository, then get the path to the git directory.
+    # Otherwise, display an error and exit.
     # Assumption: the path and contents of the git dir, the path and contents of
-    # the index file, the path of the working tree, and the path of the working
-    # directory are not changed by another process throughout program execution
+    # the index file, the path of the working tree, the path of the current
+    # directory, and the contents of the git executable are not changed by
+    # another process throughout program execution
+    # To deal with trailing newlines, add an extra character at the end...
     local git_dir
-    git_dir="$(git rev-parse --git-dir)"
+    git_dir="$(git rev-parse --git-dir && echo 'x')"
     if (($? != 0)); then
         exit 1
     fi
+    # ... and then remove the extra character
+    git_dir="${git_dir%$'\nx'}"
 
     # Determine which treeish to use for `git reset`. If HEAD is invalid (we are
     # on an unborn branch), then pass HEAD to `git reset`. Otherwise, pass the
