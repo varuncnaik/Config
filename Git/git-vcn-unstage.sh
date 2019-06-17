@@ -13,7 +13,7 @@ opt_verbosity=0
 # Signal handler to remove the lock file.
 # $1: signal number
 cleanup() {
-    # See tempfile.c:remove_tempfiles
+    # See tempfile.c:remove_tempfiles()
     if [[ -n "$lock_file" ]]; then
         rm -- "$lock_file" > /dev/null 2>&1
     fi
@@ -49,8 +49,6 @@ create_lock_file() {
         git add
         exit 1
     fi
-
-    return 0
 }
 
 # Near-atomically deletes lock and unsets lock_file.
@@ -62,7 +60,7 @@ remove_lock_file() {
     # be a signal), but the only damage is that the lock file lingers.
     lock_file=''
 
-    # See tempfile.c:remove_tempfiles
+    # See tempfile.c:remove_tempfiles()
     rm -- "$local_lock_file"
 }
 
@@ -128,7 +126,7 @@ check_file_arguments() (
         diff_status=$?
         if ((diff_status != 1)); then
             if ((diff_status == 0)); then
-                >&2 echo "error: pathspec '$file' did not match any staged files"
+                >&2 echo "Error: pathspec '$file' did not match any staged files"
             fi
             return 1
         fi
@@ -165,7 +163,7 @@ get_count_to_unstage() {
 # option. Changes the shell variables OPTARG and OPTIND.
 read_args() {
     if ((OPTIND != 1)); then
-        >&2 echo "OPTIND is $OPTIND"' != 1, exiting'
+        >&2 echo "BUG: OPTIND is $OPTIND"' != 1'
         exit 1
     fi
 
@@ -206,23 +204,25 @@ main() {
     # ... and then remove the extra character
     git_dir="${git_dir%$'\nx'}"
 
-    # Determine which treeish to use for `git reset`. If HEAD is invalid (we are
-    # on an unborn branch), then pass HEAD to `git reset`. Otherwise, pass the
-    # SHA-1 hash of the commit.
-    local reset_treeish
-    reset_treeish="$(git rev-parse --revs-only HEAD)"
-    if (($? != 0)); then
-        exit 1
-    fi
-    if [[ -z "$reset_treeish" ]]; then
-        reset_treeish='HEAD'
-    fi
-
     # Read option arguments, and then shift past them
     read_args "$@"
     shift "$((OPTIND-1))"
 
     create_lock_file "$git_dir"
+
+    # Determine which treeish to use for `git reset`. If HEAD is invalid (we are
+    # on an unborn branch), then pass the id of the empty tree to `git reset`.
+    # Otherwise, pass the SHA-1 hash of the commit.
+    local reset_treeish
+    reset_treeish="$(git rev-parse --revs-only HEAD)"
+    if (($? != 0)); then
+        >&2 echo 'BUG: git rev-parse HEAD failed'
+        remove_lock_file
+        exit 1
+    fi
+    if [[ -z "$reset_treeish" ]]; then
+        reset_treeish="$(git hash-object -t tree /dev/null)"
+    fi
 
     # TODO: add -h, -p, -n, -N (undo intent to add), -e (ignore errors)
     if ((opt_all == 0)); then
@@ -280,7 +280,7 @@ main() {
         fi
     )
     if ((lines_done == 0)); then
-        >&2 echo 'git status failed, exiting'
+        >&2 echo 'BUG: git status failed'
         remove_lock_file
         exit 1
     fi
@@ -298,6 +298,7 @@ main() {
         # command still prints information during a merge conflict
         git reset --quiet "$reset_treeish" -- "${files_to_unstage[@]}" > /dev/null
         if (($? != 0)); then
+            >&2 echo 'BUG: git reset failed'
             exit 1
         fi
         if ((opt_verbosity == 1)); then
