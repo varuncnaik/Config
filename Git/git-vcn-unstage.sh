@@ -135,30 +135,6 @@ check_file_arguments() (
     return 0
 )
 
-# Returns the number of files (0, 1, or 2) to unstage, according to a line of
-# output from `git status --porcelain=v1`.
-# $1: the line of output
-get_count_to_unstage() {
-    local line="$1"
-    local status="${line:0:2}"
-    if [[ "${status:0:1}" == ' '
-        || "$status" == 'DD'
-        || "$status" == 'AU'
-        || "$status" == 'UD'
-        || "$status" == 'UA'
-        || "$status" == 'DU'
-        || "$status" == 'AA'
-        || "$status" == 'UU' ]]; then
-        # Conflicted: no files to unstage
-        return 0
-    elif [[ "${status:0:1}" == 'R' ]]; then
-        # Renamed in index: 2 files to unstage (spans 2 lines)
-        return 2
-    fi
-    # All other cases: 1 file to unstage
-    return 1
-}
-
 # Reads options into option globals, or exits with status 1 if there's a bad
 # option. Changes the shell variables OPTARG and OPTIND.
 read_args() {
@@ -241,46 +217,71 @@ main() {
 
     local line
     local files_to_unstage
-    local line_is_rename=0
+    local diff_state=0
     local lines_done=0
     files_to_unstage=()
     # Read lines using null terminator as the delimiter
     while IFS='' read -r -d $'\0' line; do
-        if ((line_is_rename == 1)); then
-            files_to_unstage+=("$line")
-            line_is_rename=0
-        else
+        if ((diff_state == 0)); then
+            # Determine diff_state
             if [[ "$line" == 'Done' ]]; then
                 lines_done=1
             else
-                local count_to_unstage
-                get_count_to_unstage "$line"
-                count_to_unstage=$?
-                if ((count_to_unstage == 1)); then
-                    files_to_unstage+=("${line:3}")
-                elif ((count_to_unstage == 2)); then
-                    files_to_unstage+=("${line:3}")
-                    line_is_rename=1
+                if [[ "${line:97}" != 'U' ]]; then
+                    # File is staged
+                    diff_state=1
+                else
+                    # File is unmerged
+                    diff_state=2
                 fi
             fi
+        elif ((diff_state == 1)); then
+            files_to_unstage+=("$line")
+            diff_state=0
+        else
+            diff_state=0
         fi
     done < <(
         cd -- "${GIT_PREFIX:-.}"
-        # --untracked-files=no makes the output smaller
-        local status_status
+        # In the descriptions below, two-letter pairs (e.g. DA, DD) refer to the <XY> state of the
+        # file, as printed near the start of each line of output from `git status --porcelain=v2`
+        # (2.11+).
+        # `git diff-index --cached --no-renames --ita-invisible-in-index -z "$reset_treeish" -- "$@"`:
+        # - `--ita-invisible-in-index` is only available in 2.11+, but no other way to guarantee
+        #   that ITA files are handled correctly (impossible edge case: DD, empty in index)
+        # - Inaccurate output for DA/DD/DR files (not an issue for us)
+        # `git diff --staged --raw --abbrev=40 --no-renames --ita-invisible-in-index -z -- "$@"`:
+        # - `--ita-invisible-in-index` is only available in 2.11+ (see above)
+        # - Inaccurate output for DA/DD/DR files (not an issue for us, fixed in 2.19+)
+        # `git --no-optional-locks status --untracked-files=no --porcelain -z -- "$@"`:
+        # - `--untracked-files=no` improves performance, but only slightly: reads each file in
+        #   working tree, outputs a line for each dirty file in working tree
+        # - `--no-renames` is only available in 2.18+
+        # - Porcelain version 1 has ambiguous DD (unmerged both deleted, or deleted in index +
+        #   deleted in working tree)
+        # - Need `--no-optional-locks` (2.15+) to avoid locking index
+        # - Need to lock refs to avoid race condition of changing HEAD
+        # `git --no-optional-locks status --untracked-files=no --porcelain=v2 -z -- "$@"`:
+        # - `--untracked-files=no` improves performance, but only slightly (see above)
+        # - `--no-renames` is only available in 2.18+
+        # - Porcelain version 2 is only available in 2.11+
+        # - Need `--no-optional-locks` (2.15+) to avoid locking index
+        # - Need to lock refs to avoid race condition of changing HEAD
+        # - Behavior depends on config status.relativePaths
+        local diff_status
         if ((opt_all == 1)); then
-            git status --untracked-files=no -z
-            status_status=$?
+            git diff-index --cached --no-renames --ita-invisible-in-index -z "$reset_treeish" --
+            diff_status=$?
         else
-            git status --untracked-files=no -z -- "$@"
-            status_status=$?
+            git diff-index --cached --no-renames --ita-invisible-in-index -z "$reset_treeish" -- "$@"
+            diff_status=$?
         fi
-        if ((status_status == 0)); then
+        if ((diff_status == 0)); then
             echo -en 'Done\0'
         fi
     )
     if ((lines_done == 0)); then
-        >&2 echo 'BUG: git status failed'
+        >&2 echo 'BUG: git diff-index --cached failed'
         remove_lock_file
         exit 1
     fi
