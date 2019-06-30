@@ -189,6 +189,9 @@ main() {
     # Determine which treeish to use for `git reset`. If HEAD is invalid (we are
     # on an unborn branch), then pass the id of the empty tree to `git reset`.
     # Otherwise, pass the SHA-1 hash of the commit.
+    local empty_tree_hash="$(git hash-object -t tree /dev/null)"
+    local zero_hash="0000000000000000000000000000000000000000"
+    local empty_object_hash="$(git hash-object /dev/null)"
     local reset_treeish
     reset_treeish="$(git rev-parse --revs-only HEAD)"
     if (($? != 0)); then
@@ -197,7 +200,7 @@ main() {
         exit 1
     fi
     if [[ -z "$reset_treeish" ]]; then
-        reset_treeish="$(git hash-object -t tree /dev/null)"
+        reset_treeish="$empty_tree_hash"
     fi
 
     # TODO: add -h, -p, -n, -N (undo intent to add), -e (ignore errors)
@@ -215,10 +218,20 @@ main() {
         fi
     fi
 
+    # Perform a no-op to see if --ita-invisible-in-index is available.
+    # Otherwise, use a best-effort approach to simulate it.
+    local ita_flag_exists=0
+    git diff-tree --ita-invisible-in-index "$empty_tree_hash" "$empty_tree_hash" --
+    if (($? == 0)); then
+        ita_flag_exists=1
+    fi
+
     local line
+    local files_maybe_ita
     local files_to_unstage
     local diff_state=0
     local lines_done=0
+    files_maybe_ita=()
     files_to_unstage=()
     # Read lines using null terminator as the delimiter
     while IFS='' read -r -d $'\0' line; do
@@ -227,28 +240,43 @@ main() {
             if [[ "$line" == 'Done' ]]; then
                 lines_done=1
             else
-                if [[ "${line:97}" != 'U' ]]; then
-                    # File is staged
+                if [[ "$ita_flag_exists" == 0
+                    && "${line:15:40}" == "$zero_hash"
+                    && "${line:56:40}" == "$empty_object_hash" ]]; then
+                    # File is ITA or empty staged
                     diff_state=1
+                elif [[ "${line:97}" != 'U' ]]; then
+                    # File is staged
+                    diff_state=2
                 else
                     # File is unmerged
-                    diff_state=2
+                    diff_state=3
                 fi
             fi
         elif ((diff_state == 1)); then
+            files_maybe_ita+=("$line")
+            diff_state=0
+        elif ((diff_state == 2)); then
             files_to_unstage+=("$line")
             diff_state=0
         else
             diff_state=0
         fi
+
     done < <(
         cd -- "${GIT_PREFIX:-.}"
+
+        local diff_flags=("--cached" "--no-renames" "-z")
+        if ((ita_flag_exists == 1)); then
+            diff_flags+=("--ita-invisible-in-index")
+        fi
+
         # In the descriptions below, two-letter pairs (e.g. DA, DD) refer to the <XY> state of the
         # file, as printed near the start of each line of output from `git status --porcelain=v2`
         # (2.11+).
-        # `git diff-index --cached --no-renames --ita-invisible-in-index -z "$reset_treeish" -- "$@"`:
+        # Current approach:
         # - `--ita-invisible-in-index` is only available in 2.11+, but no other way to guarantee
-        #   that ITA files are handled correctly (impossible edge case: DD, empty in index)
+        #   that ITA files are handled correctly (impossible edge case: DA/DD, empty in index)
         # - Inaccurate output for DA/DD/DR files (not an issue for us)
         # `git diff --staged --raw --abbrev=40 --no-renames --ita-invisible-in-index -z -- "$@"`:
         # - `--ita-invisible-in-index` is only available in 2.11+ (see above)
@@ -261,29 +289,65 @@ main() {
         #   deleted in working tree)
         # - Need `--no-optional-locks` (2.15+) to avoid locking index
         # - Need to lock refs to avoid race condition of changing HEAD
-        # `git --no-optional-locks status --untracked-files=no --porcelain=v2 -z -- "$@"`:
+        # `git --no-optional-locks -c status.relativePaths=false status --untracked-files=no --porcelain=v2 -z -- "$@"`:
         # - `--untracked-files=no` improves performance, but only slightly (see above)
         # - `--no-renames` is only available in 2.18+
         # - Porcelain version 2 is only available in 2.11+
         # - Need `--no-optional-locks` (2.15+) to avoid locking index
         # - Need to lock refs to avoid race condition of changing HEAD
-        # - Behavior depends on config status.relativePaths
         local diff_status
         if ((opt_all == 1)); then
-            git diff-index --cached --no-renames --ita-invisible-in-index -z "$reset_treeish" --
+            git diff-index "${diff_flags[@]}" "$reset_treeish" --
             diff_status=$?
         else
-            git diff-index --cached --no-renames --ita-invisible-in-index -z "$reset_treeish" -- "$@"
+            git diff-index "${diff_flags[@]}" "$reset_treeish" -- "$@"
             diff_status=$?
         fi
         if ((diff_status == 0)); then
             echo -en 'Done\0'
         fi
     )
+
     if ((lines_done == 0)); then
         >&2 echo 'BUG: git diff-index --cached failed'
         remove_lock_file
         exit 1
+    fi
+
+    if ((${#files_maybe_ita[@]} > 0)); then
+        diff_state=0
+        lines_done=0
+        while IFS='' read -r -d $'\0' line; do
+            if ((diff_state == 0)); then
+                # Determine diff_state
+                if [[ "$line" == 'Done' ]]; then
+                    lines_done=1
+                else
+                    if [[ "${line:15:40}" == "$zero_hash" && "${line:56:40}" == "$empty_object_hash" ]]; then
+                        # File is empty staged
+                        diff_state=1
+                    else
+                        # File is ITA
+                        diff_state=2
+                    fi
+                fi
+            elif ((diff_state == 1)); then
+                files_to_unstage+=("$line")
+                diff_state=0
+            else
+                diff_state=0
+            fi
+        done < <(
+            git diff-index --no-renames -z "$reset_treeish" -- "${files_maybe_ita[@]}"
+            if (($? == 0)); then
+                echo -en 'Done\0'
+            fi
+        )
+        if ((lines_done == 0)); then
+            >&2 echo 'BUG: git diff-index failed'
+            remove_lock_file
+            exit 1
+        fi
     fi
 
     # Remove lock file, so `git reset` can run
