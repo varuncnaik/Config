@@ -57,6 +57,27 @@ main() {
         exit 1
     fi
 
+    # git ff
+    if [[ -e "$BIN_DIR/git-vcn-ff.sh" && ! -f "$BIN_DIR/git-vcn-ff.sh" ]]; then
+        >&2 echo "$BIN_DIR/git-vcn-ff.sh exists and is not a regular file, exiting"
+        exit 1
+    fi
+    cp "$DIR/git-vcn-ff.sh" "$BIN_DIR/git-vcn-ff.sh"
+    if (($? != 0)); then
+        >&2 echo "cp failed, exiting"
+        exit 1
+    fi
+    chmod u+x "$BIN_DIR/git-vcn-ff.sh"
+    if (($? != 0)); then
+        >&2 echo "chmod failed, exiting"
+        exit 1
+    fi
+    git config --global alias.ff '!git-vcn-ff.sh'
+    if (($? != 0)); then
+        >&2 echo "git config alias.ff failed, exiting"
+        exit 1
+    fi
+
     return 0
 }
 
