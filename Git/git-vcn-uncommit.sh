@@ -382,7 +382,7 @@ main() {
     remove_head_lock_file
 
     if ((opt_unstage == 0)); then
-        GIT_REFLOG_ACTION='uncommit' git reset --soft "$first_parent"
+        GIT_REFLOG_ACTION='uncommit' git reset --quiet --soft "$first_parent" --
         if (($? != 0)); then
             >&2 echo 'BUG: git reset --soft failed'
             remove_index_lock_file
@@ -391,7 +391,7 @@ main() {
         remove_index_lock_file
     else
         remove_index_lock_file
-        GIT_REFLOG_ACTION='uncommit' git reset --mixed "$first_parent"
+        GIT_REFLOG_ACTION='uncommit' git reset --quiet --mixed "$first_parent" --
         if (($? != 0)); then
             >&2 echo 'BUG: git reset --mixed failed'
             exit 1

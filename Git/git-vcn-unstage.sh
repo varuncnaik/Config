@@ -165,6 +165,9 @@ main() {
     trap 'cleanup '"$(kill -l QUIT)" QUIT
     trap 'cleanup '"$(kill -l PIPE)" PIPE
 
+    # Remove CDPATH variable, if defined, to avoid breaking cd later
+    unset CDPATH
+
     # If we're in a git repository, then get the path to the git directory.
     # Otherwise, display an error and exit.
     # Assumption: the path and contents of the git dir, the path and contents of
